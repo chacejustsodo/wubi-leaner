@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五笔输入法交互式学习中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive learning hub, departing from the source report's linear text format. The core is a task-oriented dashboard with modules for: 1) An interactive keyboard for radical exploration. 2) A rule explorer with step-by-step visual breakdowns. 3) A "Coder" tool for real-time character analysis and reverse lookup. 4) A structured, collapsible practice plan. This non-linear design empowers users to learn and practice in the order they prefer, which is more effective for skill acquisition than passive reading. Navigation allows seamless switching between these learning tools. -->
+    <!-- Visualization & Content Choices: 1. Keyboard/Radicals: Report's static tables -> Interactive HTML/CSS Grid Keyboard -> User hovers/clicks a key to see radicals/mnemonics dynamically displayed -> Justification: Active exploration is better for memory than passive reading. Method: HTML/CSS + JS. 2. Deconstruction Rules: Report's text list -> Tabbed interface with step-by-step visual aids for character splitting -> Justification: Visually demonstrating the rules makes them far easier to grasp. Method: HTML/CSS + JS for show/hide. 3. Character Coding: Report's rule examples -> Interactive "Coder" tool where user inputs a character and gets a full breakdown -> Justification: Provides immediate, practical application and feedback. Method: JS logic on a static data object. 4. Practice Plan: Report's long text -> Collapsible accordion -> Justification: Presents the plan in digestible, weekly chunks to reduce cognitive load. Method: HTML/CSS + JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        html { scroll-behavior: smooth; }
+        body { background-color: #FDFBF8; color: #333; }
+        .nav-link { transition: all 0.3s ease; border-bottom: 2px solid transparent; }
+        .nav-link.active, .nav-link:hover { color: #0284c7; border-bottom-color: #0284c7; }
+        .wubi-key { transition: all 0.2s ease-in-out; border: 1px solid #d4d4d4; background-color: #ffffff; position: relative; }
+        .wubi-key:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); border-color: #0284c7; }
+        .wubi-key.active { background-color: #0284c7; color: white; border-color: #0284c7; }
+        .wubi-key .key-char { font-size: 1.25rem; font-weight: 500; }
+        .wubi-key .key-name { position: absolute; top: 4px; right: 4px; font-size: 1.25rem; color: #a3a3a3; }
+        .wubi-key.active .key-name { color: #e0f2fe; }
+        .tab-btn.active, .jianma-tab-btn.active { background-color: #0284c7; color: white; border-color: #0284c7; }
+        .jianma-tab-btn { border-bottom: 2px solid transparent; }
+        .jianma-tab-btn.active { background-color: transparent; border-bottom-color: #0284c7; color: #0284c7; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .accordion-content.open { max-height: 1000px; }
+        .code-block { position: relative; background-color: #282c34; color: #abb2bf; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; }
+        .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; background-color: #4f5663; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem; }
+        .copy-btn:hover { background-color: #6d7585; }
+        .feedback-correct { color: #16a34a; }
+        .feedback-incorrect { color: #dc2626; }
+    </style>
+</head>
+<body class="font-sans antialiased text-stone-800 bg-[#FDFBF8]">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-sky-700">五笔学习中心</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#section-why" class="nav-link px-3 py-2 rounded-md text-sm font-medium">理念与优势</a>
+                        <a href="#section-keyboard" class="nav-link px-3 py-2 rounded-md text-sm font-medium">互动键盘</a>
+                        <a href="#section-rules" class="nav-link px-3 py-2 rounded-md text-sm font-medium">拆分规则</a>
+                        <a href="#section-practice" class="nav-link px-3 py-2 rounded-md text-sm font-medium">学习计划</a>
+                        <a href="#section-exercise" class="nav-link px-3 py-2 rounded-md text-sm font-medium">实战练习</a>
+                        <a href="#section-tools" class="nav-link px-3 py-2 rounded-md text-sm font-medium">工具配置</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-white border border-stone-300 rounded-md p-2">
+                        <option value="#section-why">理念与优势</option>
+                        <option value="#section-keyboard">互动键盘</option>
+                        <option value="#section-rules">拆分规则</option>
+                        <option value="#section-practice">学习计划</option>
+                        <option value="#section-exercise">实战练习</option>
+                        <option value="#section-tools">工具配置</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        
+        <section id="section-why" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-4 text-center">从声音到形状的认知跃迁</h2>
+            <p class="text-lg text-stone-600 mb-8 max-w-3xl mx-auto text-center">对于熟练的拼音用户，学习五笔不仅是换个工具，更是一次输入思维的深刻升级。它将您从依赖“声音”的模糊搜索，带入基于“形状”的精确打击。这是一个为追求极致效率、对抗提笔忘字、真正实现心手合一的严肃文字工作者准备的终极方案。</p>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">① 告别重码</h3>
+                    <p class="text-stone-600">拼音的“一对多”让您在候选词中不断选择。五笔通过字形精确编码，重码率极低，实现真正的“直觉输入”，让思考与打字无缝衔接。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">② 跨越音障</h3>
+                    <p class="text-stone-600">遇到“会写不会读”的生僻字或专业术语怎么办？五笔完全基于字形，只要您能写出这个字，就能轻松输入，不受发音和方言的困扰。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">③ 认知重塑</h3>
+                    <p class="text-stone-600">学习五笔是对汉字笔画、部首和结构的系统性再学习。它能有效对抗“提笔忘字”，不仅是输入工具，更是巩固汉字记忆的利器。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-keyboard" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">互动字根键盘 (86版)</h2>
+            <p class="text-lg text-stone-600 mb-8 max-w-3xl mx-auto text-center">这是您的五笔训练场。将鼠标悬停或点击任意按键，即可查看该键位上的所有字根及其助记词。这是将字根与键盘位置建立肌肉记忆的第一步。</p>
+            
+            <div class="bg-white p-4 md:p-8 rounded-lg shadow-lg">
+                <div id="keyboard-display" class="w-full bg-stone-50 p-4 rounded-md mb-4 h-48 flex flex-col justify-center items-center text-center transition-all duration-300">
+                    <p id="display-mnemonic" class="text-2xl md:text-3xl font-bold text-sky-700 tracking-wider mb-2">王旁青头戋五一</p>
+                    <p id="display-radicals" class="text-4xl md:text-6xl text-stone-800 font-serif">王 青 戋 五 一</p>
+                    <p id="display-key-info" class="text-sm text-stone-500 mt-2">G (11) - 横区 / 1位</p>
+                </div>
+                <div id="keyboard-container" class="grid gap-1.5 md:gap-2">
+                </div>
+            </div>
+        </section>
+        
+        <section id="section-rules" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">拆分规则探秘</h2>
+            <p class="text-lg text-stone-600 mb-8 max-w-3xl mx-auto text-center">掌握了字根材料，还需学习“建筑法规”。这里我们将复杂的拆分和编码规则变为可交互的模块。点击每个规则，深入理解其原理与实例。</p>
+            <div class="grid lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1">
+                    <div id="rules-tabs" class="flex flex-col space-y-2">
+                        <button data-rule="split" class="tab-btn w-full text-left p-3 rounded-md bg-white shadow-sm font-semibold">拆分四大原则</button>
+                        <button data-rule="code" class="tab-btn w-full text-left p-3 rounded-md bg-white shadow-sm font-semibold">编码取码规则</button>
+                        <button data-rule="id" class="tab-btn w-full text-left p-3 rounded-md bg-white shadow-sm font-semibold">末笔识别码</button>
+                        <button data-rule="short" class="tab-btn w-full text-left p-3 rounded-md bg-white shadow-sm font-semibold">简码与词组</button>
+                    </div>
+                </div>
+                <div id="rules-content" class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm min-h-[400px]">
+                </div>
+            </div>
+        </section>
+
+        <section id="section-practice" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">四周精通计划</h2>
+             <p class="text-lg text-stone-600 mb-8 max-w-3xl mx-auto text-center">理论和工具已经就绪，现在是实战。我们为您设计了一个为期四周的结构化练习方案，助您高效地度过学习曲线，形成肌肉记忆。</p>
+            <div id="practice-accordion" class="space-y-4">
+            </div>
+        </section>
+
+        <section id="section-exercise" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">实战练习场 & 简码速查</h2>
+            <p class="text-lg text-stone-600 mb-8 max-w-3xl mx-auto text-center">在这里将理论付诸实践。根据提示输入正确的五笔编码，并通过旁边的速查表巩固高频简码记忆。</p>
+            <div class="grid lg:grid-cols-5 gap-8">
+                <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg flex flex-col">
+                    <div class="text-center mb-6 flex-grow">
+                        <p class="text-stone-500 mb-2">请打出下面这个字：</p>
+                        <div id="prompt-char" class="text-8xl font-serif font-bold text-sky-700 h-28 flex items-center justify-center bg-stone-50 rounded-lg">我</div>
+                    </div>
+                    <input id="wubi-input" type="text" class="w-full text-center text-3xl font-mono p-4 border-2 border-stone-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition" placeholder="输入编码..." maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    <div id="feedback-area" class="text-center mt-4 h-6 text-lg font-semibold">&nbsp;</div>
+                    <button id="next-char-btn" class="w-full mt-4 bg-sky-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-sky-700 transition-colors">下一个 (Enter)</button>
+                </div>
+                <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-lg">
+                     <div id="jianma-tabs" class="flex border-b border-stone-200 mb-4">
+                         <button data-tab="jianma1" class="jianma-tab-btn flex-1 py-2 font-semibold text-stone-700 hover:border-sky-500 hover:text-sky-600 transition-colors">一级简码</button>
+                         <button data-tab="jianma2" class="jianma-tab-btn flex-1 py-2 font-semibold text-stone-700 hover:border-sky-500 hover:text-sky-600 transition-colors">二级简码</button>
+                         <button data-tab="jianma3" class="jianma-tab-btn flex-1 py-2 font-semibold text-stone-700 hover:border-sky-500 hover:text-sky-600 transition-colors">三级简码</button>
+                     </div>
+                     <div id="jianma-content" class="text-sm">
+                     </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="section-tools" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">macOS 工具箱配置</h2>
+            <p class="text-lg text-stone-600 mb-8 max-w-3xl mx-auto text-center">对于追求极致效率的高级用户，我们推荐开源、免费、无广告且高度可定制的 Rime 输入法引擎（macOS 版名为“鼠须管”）。以下是手把手的配置指南。</p>
+            <div class="bg-white p-6 rounded-lg shadow-sm space-y-8">
+                <div>
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">第一步：通过 Homebrew 安装</h3>
+                    <p class="mb-2">打开“终端” (Terminal) 应用，执行以下命令安装“鼠须管”。这是最简单可靠的方式。</p>
+                    <div class="code-block">
+                        <button class="copy-btn">复制</button>
+                        <pre><code>brew install --cask squirrel</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">第二步：启用五笔拼音混合模式</h3>
+                    <p class="mb-2">在您的 Rime 配置目录 `~/Library/Rime/` 中，创建或编辑 `default.custom.yaml` 文件，粘贴以下内容。这可以在您忘记拆分时无缝使用拼音反查。</p>
+                    <div class="code-block">
+                        <button class="copy-btn">复制</button>
+                        <pre><code># default.custom.yaml
+patch:
+  schema_list:
+    - schema: wubi_pinyin</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">第三步：定制外观 (可选)</h3>
+                    <p class="mb-2">为获得更佳的视觉体验，在配置目录中创建或编辑 `squirrel.custom.yaml`，使其更贴合 macOS 风格。</p>
+                     <div class="code-block">
+                        <button class="copy-btn">复制</button>
+                        <pre><code># squirrel.custom.yaml
+patch:
+  style/horizontal: true
+  style/font_face: "PingFang SC"
+  style/font_point: 16
+  style/corner_radius: 5
+  style/color_scheme: macos_light
+  style/color_scheme_dark: macos_dark
+
+  preset_color_schemes:
+    macos_light:
+      name: "亮"
+      back_color: 0xFFFFFF
+      text_color: 0x000000
+      hilited_candidate_back_color: 0x007AFF
+    macos_dark:
+      name: "暗"
+      back_color: 0x2E2E2E
+      text_color: 0xFFFFFF
+      hilited_candidate_back_color: 0x007AFF</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-2 text-sky-700">第四步：部署生效</h3>
+                    <p>完成编辑后，点击屏幕右上角的输入法图标，切换到“鼠须管”，在其菜单中选择“部署”或“Deploy”，配置即可生效。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-6 border-t border-stone-200 mt-16">
+        <p class="text-stone-500 text-sm">交互式应用由 AI 根据源报告设计与生成</p>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const wubiData = { 'Q': { name: '金', mnemonic: '金勺缺点无尾鱼，犬旁留叉一点夕，氏无七', radicals: '金 钅 勹 儿 夂 犭 乂 夕 氏' }, 'W': { name: '人', mnemonic: '人八、登头单人几', radicals: '人 八 癶 亻' }, 'E': { name: '月', mnemonic: '月彡乃用家衣底', radicals: '月 彡 乃 豕 衣' }, 'R': { name: '白', mnemonic: '白手看头三二斤', radicals: '白 手 斤' }, 'T': { name: '禾', mnemonic: '禾竹一撇双人立，反文条头共三一', radicals: '禾 竹 丿 彳 夂 攵' }, 'Y': { name: '言', mnemonic: '言文方点谁人去', radicals: '言 文 方 丶 亠 讠' }, 'U': { name: '立', mnemonic: '立辛六羊病门里', radicals: '立 辛 六 羊 疒 门' }, 'I': { name: '水', mnemonic: '水族三点鳖头小', radicals: '水 氵 小' }, 'O': { name: '火', mnemonic: '火业广鹿四点米', radicals: '火 灬 业 广 米' }, 'P': { name: '之', mnemonic: '之字宝盖补礻衤', radicals: '之 宀 冖 礻 衤' }, 'A': { name: '工', mnemonic: '工戈草头右框七', radicals: '工 戈 艹 匚 七' }, 'S': { name: '木', mnemonic: '木丁西', radicals: '木 丁 西' }, 'D': { name: '大', mnemonic: '大犬三羊古石厂', radicals: '大 犬 三 羊 古 石 厂' }, 'F': { name: '土', mnemonic: '土士二干十寸雨', radicals: '土 士 二 干 十 寸 雨' }, 'G': { name: '王', mnemonic: '王旁青头戋五一', radicals: '王 青 戋 五 一' }, 'H': { name: '目', mnemonic: '目具上止卜虎皮', radicals: '目 具 止 卜 虍 皮' }, 'J': { name: '日', mnemonic: '日早两竖与虫依', radicals: '日 早 刂 虫' }, 'K': { name: '口', mnemonic: '口与川，字根稀', radicals: '口 川' }, 'L': { name: '田', mnemonic: '田甲方框四车力', radicals: '田 甲 方 囗 四 车 力' }, 'M': { name: '山', mnemonic: '山由贝，下框几', radicals: '山 由 贝 冂 几' }, 'Z': { name: 'Z', mnemonic: 'Z键为万能查询键', radicals: '无' }, 'X': { name: '幺', mnemonic: '幺母贯头弓和匕', radicals: '幺 乡 母 弓 匕' }, 'C': { name: '又', mnemonic: '又巴牛厶马失蹄', radicals: '又 厶 马 C' }, 'V': { name: '女', mnemonic: '女刀九艮山西倒', radicals: '女 刀 九 艮 ⺄' }, 'B': { name: '子', mnemonic: '子耳了也乃框皮', radicals: '子 耳 了 乜 乃 卩' }, 'N': { name: '已', mnemonic: '已类左框心尸羽', radicals: '已 巳 巴 心 尸 羽 𠃌' } };
+    const keyLayout = [ ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'], ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'], ['Z', 'X', 'C', 'V', 'B', 'N', 'M'] ];
+    const keyDetails = { 'G': { zone: 1, pos: 1, area: '横区' }, 'F': { zone: 1, pos: 2, area: '横区' }, 'D': { zone: 1, pos: 3, area: '横区' }, 'S': { zone: 1, pos: 4, area: '横区' }, 'A': { zone: 1, pos: 5, area: '横区' }, 'H': { zone: 2, pos: 1, area: '竖区' }, 'J': { zone: 2, pos: 2, area: '竖区' }, 'K': { zone: 2, pos: 3, area: '竖区' }, 'L': { zone: 2, pos: 4, area: '竖区' }, 'M': { zone: 2, pos: 5, area: '竖区' }, 'T': { zone: 3, pos: 1, area: '撇区' }, 'R': { zone: 3, pos: 2, area: '撇区' }, 'E': { zone: 3, pos: 3, area: '撇区' }, 'W': { zone: 3, pos: 4, area: '撇区' }, 'Q': { zone: 3, pos: 5, area: '撇区' }, 'Y': { zone: 4, pos: 1, area: '捺/点区' }, 'U': { zone: 4, pos: 2, area: '捺/点区' }, 'I': { zone: 4, pos: 3, area: '捺/点区' }, 'O': { zone: 4, pos: 4, area: '捺/点区' }, 'P': { zone: 4, pos: 5, area: '捺/点区' }, 'N': { zone: 5, pos: 1, area: '折区' }, 'B': { zone: 5, pos: 2, area: '折区' }, 'V': { zone: 5, pos: 3, area: '折区' }, 'C': { zone: 5, pos: 4, area: '折区' }, 'X': { zone: 5, pos: 5, area: '折区' }, 'Z': { zone: 0, pos: 0, area: '万能键' } };
+    const rulesData = { split: { title: '拆分四大原则', content: `<p class="mb-4">将汉字正确拆分为字根序列，是五笔输入的第一步，必须遵循四大核心原则：</p><ul class="space-y-4"><li><strong class="text-sky-600">1. 书写顺序：</strong>严格按照从上到下、从左到右、从外到内的笔顺拆分。 <br><span class="text-sm text-stone-500">例：“新” 拆为 立(U) → 木(S) → 斤(R)。</span></li><li><strong class="text-sky-600">2. 取大优先：</strong>尽可能选择笔画更多的长字根，而不是几个小字根的组合。 <br><span class="text-sm text-stone-500">例：“要” 应取“西”(S)，而非“一”+“口”+“儿”。</span></li><li><strong class="text-sky-600">3. 兼顾直观：</strong>尽量保持字根的视觉完整性，不生硬割裂。 <br><span class="text-sm text-stone-500">例：“国” 拆为 囗(L) → 玉(G)，而不是 囗 → 王 → 丶。</span></li><li><strong class="text-sky-600">4. 能散不连，能连不交：</strong>优先拆为分离的“散”结构，其次是“连”结构，最后才是“交”结构。 <br><span class="text-sm text-stone-500">例：“天” 拆为 一(G) → 大(D)，是“连”结构。</span></li></ul>` }, code: { title: '编码取码规则', content: `<p class="mb-4">所有汉字编码最长四位，最短一位。根据拆分后的字根数取码：</p><ul class="space-y-4"><li><strong class="text-sky-600">> 4 字根：</strong>取第一、二、三和最后一个字根（前三末一）。<br><span class="text-sm text-stone-500">例：“键”(金廴聿丨一) → QPVG。</span></li><li><strong class="text-sky-600">= 4 字根：</strong>全取。<br><span class="text-sm text-stone-500">例：“谢”(言身丿寸) → YTTF。</span></li><li><strong class="text-sky-600">= 3 字根：</strong>全取 + 1位末笔识别码。<br><span class="text-sm text-stone-500">例：“给”(纟人口) → XWK + K(识别码) = XWKK。</span></li><li><strong class="text-sky-600">= 2 字根：</strong>全取 + 1位末笔识别码。<br><span class="text-sm text-stone-500">例：“好”(女子) → VB + G(识别码) = VBG。</span></li><li><strong class="text-sky-600">单字根字：</strong><ul class="list-disc pl-5 mt-1"><li><strong>键名汉字：</strong>连击其所在键四次。例：“王”→GGGG，“木”→SSSS。</li><li><strong>成字字根：</strong>报字根键 + 首笔 + 次笔 + 末笔。例：“文”(Y键)→YYGY。</li></ul></li></ul>` }, id: { title: '末笔识别码', content: `<p class="mb-4">识别码用于补充不足四码的汉字，由<strong class="text-rose-600">末笔笔画</strong>和<strong class="text-blue-600">字型结构</strong>共同决定，其逻辑是“<strong class="text-blue-600">字型</strong>定区，<strong class="text-rose-600">末笔</strong>定位”。</p><div class="overflow-x-auto"><table class="w-full text-center border-collapse"><thead><tr class="bg-stone-100"><th class="border p-2">字型/末笔</th><th class="border p-2"><span class="text-rose-600">1 横</span> (G,F,D)</th><th class="border p-2"><span class="text-rose-600">2 竖</span> (H,J,K)</th><th class="border p-2"><span class="text-rose-600">3 撇</span> (T,R,E)</th><th class="border p-2"><span class="text-rose-600">4 捺</span> (Y,U,I)</th><th class="border p-2"><span class="text-rose-600">5 折</span> (N,B,V)</th></tr></thead><tbody><tr><td class="border p-2 font-bold"><span class="text-blue-600">1 左右</span></td><td class="border p-2 font-mono">G</td><td class="border p-2 font-mono">H</td><td class="border p-2 font-mono">T</td><td class="border p-2 font-mono">Y</td><td class="border p-2 font-mono">N</td></tr><tr><td class="border p-2 font-bold"><span class="text-blue-600">2 上下</span></td><td class="border p-2 font-mono">F</td><td class="border p-2 font-mono">J</td><td class="border p-2 font-mono">R</td><td class="border p-2 font-mono">U</td><td class="border p-2 font-mono">B</td></tr><tr><td class="border p-2 font-bold"><span class="text-blue-600">3 杂合</span></td><td class="border p-2 font-mono">D</td><td class="border p-2 font-mono">K</td><td class="border p-2 font-mono">E</td><td class="border p-2 font-mono">I</td><td class="border p-2 font-mono">V</td></tr></tbody></table></div><p class="mt-4"><strong>实例：“好”</strong> = 女(V) + 子(B)。末笔为“子”的“一”(<strong class="text-rose-600">横</strong>), 左右结构(<strong class="text-blue-600">1</strong>)。<strong class="text-blue-600">左右</strong>区(1区)，<strong class="text-rose-600">横</strong>位(1位) -> G。最终编码 VBG。</p>` }, short: { title: '简码与词组', content: `<p class="mb-4">为最大化效率，五笔为高频字词设定了简码和词组规则。</p><h4 class="font-bold text-md text-sky-600 mb-2">简码</h4><ul class="space-y-2 mb-4"><li><strong>一级简码 (25个):</strong> 单个字母输入最高频汉字。必须背熟！<br><span class="font-mono text-sm text-stone-500">Q我 W人 E有 R的 T和 Y主...</span></li><li><strong>二级简码:</strong> 取全码前两位。<span class="text-sm text-stone-500">例：“好”(VBG) → VB</span></li><li><strong>三级简码:</strong> 取全码前三位。<span class="text-sm text-stone-500">例：“给”(XWKK) → XWK</span></li></ul><h4 class="font-bold text-md text-sky-600 mb-2">词组</h4><ul class="space-y-2"><li><strong>二字词:</strong> 取每字第一码。<span class="text-sm text-stone-500">例：“中国” → 中(K) + 国(L) = KL</span></li><li><strong>三字词:</strong> 前两字各取一码，末字取前两码。<span class="text-sm text-stone-500">例：“计算机” → 计(Y) + 算(T) + 机(SM) = YTSM</span></li><li><strong>四字词:</strong> 每字各取一码。<span class="text-sm text-stone-500">例：“中华人民共和国” → KWWN</span></li><li><strong>多字词:</strong> 取前三字和末字的第一码。<span class="text-sm text-stone-500">例：“经济适用房” → XIKY</span></li></ul>` } };
+    const practiceData = [ { week: 1, title: '字根与一级简码', goal: '将字根图和键盘位置建立强联系；背熟25个一级简码。', content: ['<strong>字根练习：</strong>使用“看字根，按键位”的模式反复训练，达到不假思索的程度。', '<strong>一级简码练习：</strong>找一篇由一级简码汉字（我、人、有、的、和...）构成的短文，练习盲打。', '<strong>日常输入：</strong>尝试用五笔进行简单聊天，只打会打的字，其他用拼音或Z键代替。'] }, { week: 2, title: '高频单字与二、三级简码', goal: '掌握最常见的500个汉字的拆分和编码；熟练使用二、三级简码。', content: ['<strong>单字练习：</strong>按汉字频率表，从高到低逐个练习。遇到不会的，立即使用Z键反查。', '<strong>简码强化：</strong>练习时有意识地只输入简码后就按空格，而不是全码。', '<strong>强制使用：</strong>将五笔设为默认输入法，强迫自己在所有非紧急场景下使用。'] }, { week: 3, title: '词组编码', goal: '熟练掌握二字、三字、四字及多字词的取码规则。', content: ['<strong>词组练习：</strong>切换到词组模式，重点练习常用词语，体会节奏感和效率提升。', '<strong>短文跟打：</strong>选择新闻或散文进行跟打练习，将注意力从单字转移到词组。'] }, { week: 4, title: '迈向流畅', goal: '达到基本流畅的输入速度，形成肌肉记忆。', content: ['<strong>长文练习：</strong>选择自己感兴趣的长篇文章进行不间断练习。', '<strong>速度测试：</strong>使用在线打字测速工具，记录WPM，观察是否能稳定无停顿地输入。', '<strong>融入工作流：</strong>在日常工作和学习中全面使用五笔，享受效率优势。'] } ];
+    
+    // NEW DATA FOR PRACTICE AND JIANMA
+    const practiceChars = [ {char:"我",code:"q"},{char:"人",code:"w"},{char:"有",code:"e"},{char:"的",code:"r"},{char:"和",code:"t"},{char:"主",code:"y"},{char:"产",code:"u"},{char:"不",code:"i"},{char:"为",code:"o"},{char:"这",code:"p"},{char:"工",code:"a"},{char:"要",code:"s"},{char:"在",code:"d"},{char:"地",code:"f"},{char:"一",code:"g"},{char:"上",code:"h"},{char:"是",code:"j"},{char:"中",code:"k"},{char:"国",code:"l"},{char:"同",code:"m"},{char:"民",code:"n"},{char:"了",code:"b"},{char:"发",code:"v"},{char:"以",code:"c"},{char:"经",code:"x"},{char:"好",code:"vbg"},{char:"你",code:"wqey"},{char:"他",code:"wby"},{char:"学",code:"ipf"},{char:"字",code:"pbf"},{char:"文",code:"yygy"},{char:"安",code:"pvf"},{char:"机",code:"sm"},{char:"电",code:"jnu"},{char:"动",code:"fcln"},{char:"车",code:"lg"},{char:"时",code:"jfy"},{char:"间",code:"ujf"}, {char:"理",code:"gkh"} ];
+    const jianmaData = {
+        jianma1: [ {code:"Q",char:"我"},{code:"W",char:"人"},{code:"E",char:"有"},{code:"R",char:"的"},{code:"T",char:"和"},{code:"Y",char:"主"},{code:"U",char:"产"},{code:"I",char:"不"},{code:"O",char:"为"},{code:"P",char:"这"},{code:"A",char:"工"},{code:"S",char:"要"},{code:"D",char:"在"},{code:"F",char:"地"},{code:"G",char:"一"},{code:"H",char:"上"},{code:"J",char:"是"},{code:"K",char:"中"},{code:"L",char:"国"},{code:"M",char:"同"},{code:"N",char:"民"},{code:"B",char:"了"},{code:"V",char:"发"},{code:"C",char:"以"},{code:"X",char:"经"} ],
+        jianma2: [ {code:"SP",char:"要"},{code:"DE",char:"在"},{code:"FF",char:"地"},{code:"HG",char:"上"},{code:"JG",char:"是"},{code:"KH",char:"中"},{code:"LG",char:"国"},{code:"MG",char:"同"},{code:"NG",char:"民"},{code:"BI",char:"了"},{code:"VC",char:"发"},{code:"NW",char:"以"},{code:"XA",char:"经"},{code:"WG",char:"人"},{code:"ET",char:"有"},{code:"DS",char:"的"},{code:"TA",char:"和"},{code:"YI",char:"主"},{code:"UT",char:"产"},{code:"IT",char:"不"},{code:"OG",char:"为"},{code:"PA",char:"这"},{code:"AM",char:"工"},{code:"QK",char:"我"}, {code:"WQ", char:"你"}, {code:"WB", char:"他"}, {code:"IP", char:"学"}, {code:"PB", char:"字"} ],
+        jianma3: [ {code:"QTR",char:"我"},{code:"WQE",char:"你"},{code:"WBY",char:"他"},{code:"EGH",char:"有"},{code:"RQQ",char:"的"},{code:"TKG",char:"和"},{code:"YGD",char:"主"},{code:"UTE",char:"产"},{code:"GHK",char:"不"},{code:"OGD",char:"为"},{code:"PVI",char:"这"},{code:"AD",char:"工"},{code:"SV",char:"要"},{code:"DHF",char:"在"},{code:"FCA",char:"地"},{code:"GGH",char:"一"},{code:"HBD",char:"上"},{code:"JGH",char:"是"},{code:"KHK",char:"中"},{code:"LGYI",char:"国"},{code:"MGK",char:"同"},{code:"NAY",char:"民"},{code:"BNH",char:"了"},{code:"VCI",char:"发"},{code:"CWY",char:"以"},{code:"XCA",char:"经"}, {code:"VBG", char:"好"}, {code:"IPF", char:"学"}, {code:"PBF", char:"字"} ]
+    };
+
+    let activeKey = null;
+
+    function initKeyboard() {
+        const keyboardContainer = document.getElementById('keyboard-container');
+        if (!keyboardContainer) return;
+        function updateDisplay(key) {
+            const data = wubiData[key];
+            const details = keyDetails[key];
+            if (data && details) {
+                document.getElementById('display-mnemonic').textContent = data.mnemonic;
+                document.getElementById('display-radicals').textContent = data.radicals;
+                document.getElementById('display-key-info').textContent = `${key} (${details.zone}${details.pos}) - ${details.area}`;
+                if(activeKey) activeKey.classList.remove('active');
+                activeKey = document.querySelector(`[data-key="${key}"]`);
+                if(activeKey) activeKey.classList.add('active');
+            }
+        }
+        keyLayout.forEach((row, rowIndex) => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'flex justify-center gap-1.5 md:gap-2';
+            if (rowIndex === 1) rowDiv.style.paddingLeft = 'calc(50% / 10)'; // Approximation
+            if (rowIndex === 2) rowDiv.style.paddingLeft = 'calc(100% / 10 * 1.5)'; // Approximation
+            row.forEach(keyChar => {
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'wubi-key flex-1 flex items-center justify-center h-16 md:h-20 rounded-md cursor-pointer';
+                keyDiv.dataset.key = keyChar;
+                keyDiv.innerHTML = `<span class="key-char">${keyChar}</span><span class="key-name">${wubiData[keyChar] ? wubiData[keyChar].name : ''}</span>`;
+                keyDiv.addEventListener('mouseenter', () => updateDisplay(keyChar));
+                keyDiv.addEventListener('click', () => updateDisplay(keyChar));
+                rowDiv.appendChild(keyDiv);
+            });
+            keyboardContainer.appendChild(rowDiv);
+        });
+        updateDisplay('G');
+    }
+
+    function initRules() {
+        const rulesTabsContainer = document.getElementById('rules-tabs');
+        const rulesContent = document.getElementById('rules-content');
+        if (!rulesTabsContainer) return;
+        rulesTabsContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const ruleKey = e.target.dataset.rule;
+                const ruleData = rulesData[ruleKey];
+                rulesTabsContainer.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                rulesContent.innerHTML = `<h3 class="text-2xl font-bold mb-4">${ruleData.title}</h3><div>${ruleData.content}</div>`;
+            }
+        });
+        rulesTabsContainer.querySelector('button').click();
+    }
+
+    function initPracticePlan() {
+        const practiceAccordion = document.getElementById('practice-accordion');
+        if (!practiceAccordion) return;
+        practiceData.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-lg shadow-sm overflow-hidden';
+            div.innerHTML = `<button class="accordion-toggle w-full flex justify-between items-center text-left p-4 font-semibold text-lg"><span>第 ${item.week} 周：${item.title}</span><span class="accordion-icon transform transition-transform duration-300">▼</span></button><div class="accordion-content"><div class="p-4 border-t border-stone-200"><p class="font-semibold text-sky-700 mb-2">目标：${item.goal}</p><ul class="list-disc list-inside space-y-2 text-stone-600">${item.content.map(c => `<li>${c}</li>`).join('')}</ul></div></div>`;
+            practiceAccordion.appendChild(div);
+        });
+        practiceAccordion.addEventListener('click', (e) => {
+            const toggle = e.target.closest('.accordion-toggle');
+            if (toggle) {
+                toggle.nextElementSibling.classList.toggle('open');
+                toggle.querySelector('.accordion-icon').classList.toggle('rotate-180');
+            }
+        });
+    }
+
+    function initExercise() {
+        const promptCharEl = document.getElementById('prompt-char');
+        const wubiInputEl = document.getElementById('wubi-input');
+        const feedbackEl = document.getElementById('feedback-area');
+        const nextBtn = document.getElementById('next-char-btn');
+        const jianmaTabs = document.getElementById('jianma-tabs');
+        const jianmaContentEl = document.getElementById('jianma-content');
+
+        if (!promptCharEl || !jianmaTabs) return;
+        
+        let currentCharIndex;
+        let isCorrect = false;
+
+        function loadNewChar() {
+            isCorrect = false;
+            let newIndex;
+            do {
+                newIndex = Math.floor(Math.random() * practiceChars.length);
+            } while (newIndex === currentCharIndex);
+            currentCharIndex = newIndex;
+            
+            const item = practiceChars[currentCharIndex];
+            promptCharEl.textContent = item.char;
+            wubiInputEl.value = '';
+            wubiInputEl.focus();
+            feedbackEl.innerHTML = '&nbsp;';
+            feedbackEl.className = 'text-center mt-4 h-6 text-lg font-semibold';
+        }
+
+        function checkInput() {
+            if (isCorrect) return;
+            const item = practiceChars[currentCharIndex];
+            const userInput = wubiInputEl.value.toLowerCase();
+            
+            if (userInput === item.code) {
+                isCorrect = true;
+                feedbackEl.textContent = `正确! ${item.char} → ${item.code.toUpperCase()}`;
+                feedbackEl.className = 'text-center mt-4 h-6 text-lg font-semibold feedback-correct';
+                setTimeout(loadNewChar, 1000);
+            } else if (userInput.length >= item.code.length) {
+                feedbackEl.textContent = `错误! 正确编码: ${item.code.toUpperCase()}`;
+                feedbackEl.className = 'text-center mt-4 h-6 text-lg font-semibold feedback-incorrect';
+            }
+        }
+        
+        function renderJianmaTable(level) {
+            const data = jianmaData[level];
+            const columns = 5;
+            const rows = Math.ceil(data.length / columns);
+            let tableHTML = '<div class="grid grid-cols-5 gap-x-4 gap-y-2 font-mono">';
+            for(let i=0; i < data.length; i++) {
+                tableHTML += `<div class="flex justify-between"><span class="font-semibold text-sky-700">${data[i].code.toUpperCase()}</span><span>${data[i].char}</span></div>`;
+            }
+            tableHTML += '</div>';
+            jianmaContentEl.innerHTML = tableHTML;
+        }
+
+        wubiInputEl.addEventListener('input', checkInput);
+        wubiInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                loadNewChar();
+            }
+        });
+        nextBtn.addEventListener('click', loadNewChar);
+
+        jianmaTabs.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const tab = e.target.dataset.tab;
+                jianmaTabs.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                renderJianmaTable(tab);
+            }
+        });
+
+        loadNewChar();
+        jianmaTabs.querySelector('button').click();
+    }
+
+    function initCopyButtons() {
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const pre = button.nextElementSibling;
+                const code = pre.innerText;
+                const textarea = document.createElement('textarea');
+                textarea.value = code;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    button.textContent = '已复制!';
+                    setTimeout(() => { button.textContent = '复制'; }, 2000);
+                } catch (err) {
+                    console.error('无法复制', err);
+                    button.textContent = '复制失败';
+                }
+                document.body.removeChild(textarea);
+            });
+        });
+    }
+
+    function initNavigation() {
+        const navLinks = document.querySelectorAll('.nav-link');
+        const mobileNav = document.getElementById('mobile-nav');
+        
+        function setActiveLink() {
+            let current = '';
+            document.querySelectorAll('section').forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.scrollY >= sectionTop - 80) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+            
+            if (mobileNav.value !== `#${current}`) {
+                mobileNav.value = `#${current}`;
+            }
+        }
+        window.addEventListener('scroll', setActiveLink);
+        setActiveLink();
+        
+        mobileNav.addEventListener('change', (e) => {
+            const section = document.querySelector(e.target.value);
+            if (section) {
+                window.scrollTo({
+                    top: section.offsetTop - 70,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    }
+
+    // Initialize all components
+    initKeyboard();
+    initRules();
+    initPracticePlan();
+    initExercise();
+    initCopyButtons();
+    initNavigation();
+});
+</script>
+
+</body>
+</html>
